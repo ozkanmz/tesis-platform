@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bera Grup · Tesis Veri Portalı</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#10131A; --bg2:#0B0D12; --panel:#1A1E27; --panel2:#1F2430; --line:#2B303C;
+    --gold:#EFA934; --golddim:#8A6423; --teal:#3FB8AF; --green:#5FBF86; --red:#E2604F;
+    --text:#EDEFF4; --mid:#AEB4C2; --dim:#6E7585;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;min-height:100vh}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+  #app{min-height:100vh;display:flex;flex-direction:column}
+  .center{margin:auto;color:var(--dim);padding:80px 20px;text-align:center}
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--bg2)}
+  .brand{display:flex;gap:10px;align-items:center}
+  .mark{width:32px;height:32px;border-radius:8px;background:conic-gradient(from 220deg,var(--gold),var(--golddim),var(--gold));display:flex;align-items:center;justify-content:center;color:#10131A;font-weight:800}
+  .brand-t{font-weight:700;letter-spacing:.02em}
+  .brand-s{font-size:11px;color:var(--dim)}
+  .tabs{display:flex;gap:4px;padding:0 12px;border-bottom:1px solid var(--line);background:rgba(16,19,26,.9);overflow-x:auto}
+  .tab{display:flex;gap:6px;align-items:center;background:none;border:none;color:var(--dim);padding:12px 12px 10px;border-bottom:2px solid transparent;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+  .tab:hover{color:var(--mid)} .tab.on{color:var(--gold);border-color:var(--gold)}
+  .main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:20px}
+  .foot{color:#4A505E;font-size:10.5px;text-align:center;padding:14px;border-top:1px solid #1F2430}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  .card h3{margin:0 0 4px;font-size:15px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:10px}
+  .btn{display:inline-flex;gap:6px;align-items:center;background:var(--gold);color:#10131A;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent;color:var(--mid);border:1px solid var(--line)}
+  .btn.ghost:hover{color:var(--text);border-color:#3a4150}
+  .btn.small{padding:5px 10px;font-size:12px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .input,select.input{background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;width:100%}
+  .input:focus{outline:2px solid var(--golddim);border-color:var(--golddim)}
+  .label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin:0 0 4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:760px){.grid3,.grid4{grid-template-columns:1fr 1fr}}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid #232836;vertical-align:top}
+  .num{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+  .pill.gold{background:rgba(239,169,52,.12);color:var(--gold)}
+  .pill.teal{background:rgba(63,184,175,.14);color:var(--teal)}
+  .pill.red{background:rgba(226,96,79,.14);color:var(--red)}
+  .pill.dim{background:#232836;color:#8b93a5}
+  .flash{max-width:1100px;margin:10px auto 0;padding:9px 14px;border-radius:8px;font-size:13px}
+  .flash.ok{background:rgba(63,184,175,.12);color:var(--teal);border:1px solid rgba(63,184,175,.3)}
+  .flash.err{background:rgba(226,96,79,.12);color:var(--red);border:1px solid rgba(226,96,79,.3)}
+  .mev{font-size:10px;color:var(--golddim);display:block;margin-top:2px}
+  .hline{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #232836;font-size:12.5px}
+  .hline b{font-family:'IBM Plex Mono',monospace;font-weight:600}
+  .login-wrap{margin:auto;width:100%;max-width:380px;padding:40px 20px}
+  .login-hero{text-align:center;margin-bottom:22px}
+  .login-hero .mark{margin:0 auto 12px;width:44px;height:44px;border-radius:12px;font-size:18px}
+  .fieldrow{margin-bottom:12px}
+  .warn{background:rgba(239,169,52,.07);border:1px solid var(--golddim);border-radius:8px;padding:8px 12px;font-size:12px;color:#d9b36a;margin-bottom:12px}
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--mid)}
+  .chip.on{background:rgba(239,169,52,.12);color:var(--gold);border-color:var(--golddim)}
+  .veri-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+  @media(max-width:860px){.veri-grid{grid-template-columns:1fr}}
+  .sticky{position:sticky;top:10px;align-self:start}
+</style>
+</head>
+<body>
+<div id="app"><div class="center">Portal yükleniyor…</div></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/* ============ Supabase bağlantısı ============ */
+const SUPABASE_URL = "https://mpmdzittpvgilwhxtsto.supabase.co";
+const SUPABASE_KEY = "sb_publishable_D_yWGGlDZAQjSofM9H4CAA_9pBD7HXs";
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ============ Yardımcılar ============ */
+const app = document.getElementById("app");
+const rid = () => Math.random().toString(36).slice(2, 10);
+const now = () => new Date().toISOString();
+const nf = (v, d = 2) => (v === null || v === undefined || isNaN(v)) ? "—" : new Intl.NumberFormat("tr-TR", { maximumFractionDigits: d }).format(v);
+const pf = (s) => { if (s === "" || s === null || s === undefined) return null; const n = parseFloat(String(s).replace(",", ".")); return isNaN(n) ? null : n; };
+const trDate = (iso) => new Date(iso).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let S = {
+  boot: "loading", session: null, profile: null,
+  companies: [], facilities: [], profiles: [],
+  page: "genel", msg: null,
+  vg: { fid: null, yil: "2024", ay: "03", data: {}, recs: [] },
+  kayit: { fid: null, recs: null, open: null, edit: null, editData: {} },
+  tesis: { form: null }, kull: { form: null }, log: null,
+};
+
+function flash(t, kind = "ok") { S.msg = { t, kind }; render(); setTimeout(() => { S.msg = null; renderFlashOnly(); }, 3500); }
+function renderFlashOnly() { const el = document.getElementById("flashSlot"); if (el) el.innerHTML = ""; }
+
+async function audit(action, detail) {
+  try { await sb.from("audit_log").insert({ uid: S.profile.id, uname: S.profile.name, action, detail }); } catch (e) { console.error(e); }
+}
+
+/* ============ Alan tanımları ============ */
+const SAYAC_FIELDS = [
+  ["cekG_ilk","Çekiş Gündüz — İlk"],["cekG_son","Çekiş Gündüz — Son"],
+  ["cekP_ilk","Çekiş Puant — İlk"],["cekP_son","Çekiş Puant — Son"],
+  ["cekN_ilk","Çekiş Gece — İlk"],["cekN_son","Çekiş Gece — Son"],
+  ["verG_ilk","Veriş Gündüz — İlk"],["verG_son","Veriş Gündüz — Son"],
+  ["verP_ilk","Veriş Puant — İlk"],["verP_son","Veriş Puant — Son"],
+  ["verN_ilk","Veriş Gece — İlk"],["verN_son","Veriş Gece — Son"],
+  ["uret_ilk","FÇG Üretim — İlk"],["uret_son","FÇG Üretim — Son"],
+  ["end_ilk","Endüktif — İlk"],["end_son","Endüktif — Son"],
+  ["kap_ilk","Kapasitif — İlk"],["kap_son","Kapasitif — Son"],
+];
+const TARIFE_FIELDS = [
+  ["t_tek","Tek Zamanlı (TL/kWh)","m.26 satış fiyatı"],
+  ["t_gunduz","Gündüz (TL/kWh)","EPDK tarife"],
+  ["t_puant","Puant (TL/kWh)","EPDK tarife"],
+  ["t_gece","Gece (TL/kWh)","EPDK tarife"],
+  ["t_dagitim","Dağıtım Bedeli (TL/kWh)","10699 KK ½/tam"],
+  ["t_reaktif","Reaktif (TL/kVArh)","end %20 · kap %15"],
+  ["t_satisdag","Satış Dağıtım — LÜ-2 (TL/kWh)","5346 Cetvel-I (e)"],
+];
+const FATURA_FIELDS = [
+  ["f_tuketim","Tüketim Faturası (KDV dahil TL)"],
+  ["f_skb","SKB Faturası (KDV dahil TL)"],
+  ["f_satisFazla","Satış — Fazlası (KDV dahil TL)"],
+  ["f_satisKars","Satış — Karşılığı (KDV dahil TL)"],
+];
+
+/* ============ Hesap motoru ============ */
+function compute(fac, d, prevRecordsSameYear) {
+  const g = (a, b) => (pf(d[b]) ?? 0) - (pf(d[a]) ?? 0);
+  const cCV = fac.carpan_cv || 1, cU = fac.carpan_u || 1;
+  const cekG = g("cekG_ilk","cekG_son") * cCV, cekP = g("cekP_ilk","cekP_son") * cCV, cekN = g("cekN_ilk","cekN_son") * cCV;
+  const verG = g("verG_ilk","verG_son") * cCV, verP = g("verP_ilk","verP_son") * cCV, verN = g("verN_ilk","verN_son") * cCV;
+  const cekis = cekG + cekP + cekN, veris = verG + verP + verN;
+  const uretim = g("uret_ilk","uret_son") * cU;
+  const ozTuketim = uretim - veris;
+  const gercekTuketim = cekis + ozTuketim;
+  const endM = g("end_ilk","end_son") * cCV, kapM = g("kap_ilk","kap_son") * cCV;
+  const endOran = cekis > 0 ? endM / cekis : 0, kapOran = cekis > 0 ? kapM / cekis : 0;
+  const aylikFazla = Math.max(0, veris - cekis);
+  const yil = (d.donem || "").split(".")[0];
+  const hak = fac.satis_hakki?.[yil] ?? null;
+  const oncekiSatis = prevRecordsSameYear.reduce((s, r) => s + (r.calc_cache?.satilabilir ?? 0), 0);
+  const kalanHakOnce = hak !== null ? Math.max(0, hak - oncekiSatis) : null;
+  const satilabilir = kalanHakOnce !== null ? Math.min(aylikFazla, kalanHakOnce) : aylikFazla;
+  const bedelsiz = aylikFazla - satilabilir;
+  const kalanHakSonra = kalanHakOnce !== null ? kalanHakOnce - satilabilir : null;
+  const karsilanan = Math.min(cekis, veris), asan = Math.max(0, cekis - veris);
+  const tDag = pf(d.t_dagitim) ?? 0;
+  const etkinDagBirim = cekis > 0 ? ((karsilanan * 0.5 + asan) / cekis) * tDag : 0;
+  const enerjiTL = cekG * (pf(d.t_gunduz) ?? 0) + cekP * (pf(d.t_puant) ?? 0) + cekN * (pf(d.t_gece) ?? 0);
+  const dagitimTL = cekis * etkinDagBirim;
+  const etvTL = enerjiTL * 0.01;
+  const kdvTL = (enerjiTL + dagitimTL + etvTL) * 0.20;
+  const hesapTuketim = enerjiTL + dagitimTL + etvTL + kdvTL;
+  const gross = (d.donem || "") >= "2025.02";
+  const tTek = pf(d.t_tek) ?? 0;
+  const satisFazlaTL = satilabilir * tTek * 1.2;
+  const satisKarsTL = gross ? karsilanan * tTek * 1.2 : 0;
+  const skbTL = satilabilir * (pf(d.t_satisdag) ?? 0) * 1.2;
+  const fark = (girilen, hesap) => { const x = pf(girilen); return x === null ? null : x - hesap; };
+  return { cekG,cekP,cekN,cekis,verG,verP,verN,veris,uretim,ozTuketim,gercekTuketim,endM,kapM,endOran,kapOran,
+    aylikFazla,hak,oncekiSatis,kalanHakOnce,satilabilir,bedelsiz,kalanHakSonra,karsilanan,asan,etkinDagBirim,
+    enerjiTL,dagitimTL,etvTL,kdvTL,hesapTuketim,gross,satisFazlaTL,satisKarsTL,skbTL,
+    farkTuketim: fark(d.f_tuketim, hesapTuketim), farkSKB: fark(d.f_skb, skbTL),
+    farkFazla: fark(d.f_satisFazla, satisFazlaTL), farkKars: fark(d.f_satisKars, satisKarsTL) };
+}
+
+function exportXlsx(fac, rec, c) {
+  const d = rec.data;
+  const wb = XLSX.utils.book_new();
+  const s1 = [
+    ["SAYAÇ VERİLERİ","","Dönem:",rec.donem,"","Tesis:",fac.name,"Tesisat:",fac.tesisat_no],[],
+    ["","","ÇEKİŞ","","VERİŞ",""],
+    ["Gündüz","İlk Endeks",pf(d.cekG_ilk),"",pf(d.verG_ilk)],["","Son Endeks",pf(d.cekG_son),"",pf(d.verG_son)],["","Miktar (kWh)",c.cekG,"",c.verG],
+    ["Puant","İlk Endeks",pf(d.cekP_ilk),"",pf(d.verP_ilk)],["","Son Endeks",pf(d.cekP_son),"",pf(d.verP_son)],["","Miktar (kWh)",c.cekP,"",c.verP],
+    ["Gece","İlk Endeks",pf(d.cekN_ilk),"",pf(d.verN_ilk)],["","Son Endeks",pf(d.cekN_son),"",pf(d.verN_son)],["","Miktar (kWh)",c.cekN,"",c.verN],
+    ["TOPLAM","Miktar (kWh)",c.cekis,"",c.veris],[],
+    ["FÇG Üretim","İlk / Son",pf(d.uret_ilk),pf(d.uret_son),"Miktar (kWh):",c.uretim],
+    ["Çarpanlar","Çekiş-Veriş:",fac.carpan_cv,"Üretim:",fac.carpan_u],[],
+    ["Endüktif","Miktar (kVArh)",c.endM,"Oran",c.endOran],["Kapasitif","Miktar (kVArh)",c.kapM,"Oran",c.kapOran],[],
+    ["SATIŞ HAKKI TAKİBİ (11.08.2022/31920)"],["Yıllık Satış Hakkı (kWh)",c.hak],["Bu Aya Kadar Yapılan Satış",c.oncekiSatis],
+    ["Aylık İhtiyaç Fazlası",c.aylikFazla],["Satılabilir Fazla",c.satilabilir],["Bedelsiz (YEKDEM)",c.bedelsiz],["Sonraki Aya Kalan Hak",c.kalanHakSonra],[],
+    ["GES Kaynaklı (Öz) Tüketim",c.ozTuketim],["Gerçek Tüketim (çekiş+öz)",c.gercekTuketim],
+  ];
+  const s2 = [["GÜNCEL TARİFE",fac.tarife_sinifi,"Dönem:",rec.donem],[],["Kalem","Değer (TL/kWh)","Mevzuat Dayanağı"],
+    ["Tek Zamanlı Enerji Bedeli",pf(d.t_tek),"Yön. m.26"],["Gündüz",pf(d.t_gunduz),"EPDK"],["Puant",pf(d.t_puant),"EPDK"],["Gece",pf(d.t_gece),"EPDK"],
+    ["Dağıtım Bedeli",pf(d.t_dagitim),"10699 KK ½/tam"],["Etkin Dağıtım Birimi",c.etkinDagBirim,"hesap"],
+    ["Reaktif Bedeli",pf(d.t_reaktif),"sınır: end%20/kap%15"],["Satış (Üretici) Dağıtım",pf(d.t_satisdag),"LÜ-2"]];
+  const s3 = [["FATURA KARŞILAŞTIRMA (v1)",rec.donem],[],["Kalem","Hesaplanan","Girilen","Fark"],
+    ["Tüketim Faturası",c.hesapTuketim,pf(d.f_tuketim),c.farkTuketim],
+    ["  · Enerji",c.enerjiTL],["  · Dağıtım",c.dagitimTL],["  · ETV %1",c.etvTL],["  · KDV %20",c.kdvTL],
+    ["SKB",c.skbTL,pf(d.f_skb),c.farkSKB],["Satış Fazlası",c.satisFazlaTL,pf(d.f_satisFazla),c.farkFazla],
+    ["Satış Karşılığı",c.satisKarsTL,pf(d.f_satisKars),c.farkKars],[],["Rejim",c.gross?"Gross/ikili (Şub2025+)":"Mahsuplu"]];
+  const s4 = [["KAYIT BİLGİSİ"],["Giren",rec.entered_by_name,trDate(rec.entered_at)],
+    ...(rec.history||[]).map(h=>["Düzeltme",h.byName,trDate(h.ts),h.note||""])];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s1), "SayaçVerileri");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s2), "GüncelTarife");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s3), "Faturalar");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s4), "KayıtGeçmişi");
+  XLSX.writeFile(wb, `${rec.donem}_${(fac.tesisat_no||fac.name).replace(/\s+/g,"")}.xlsx`);
+}
+
+/* ============ Veri erişimi ============ */
+async function loadCore() {
+  const [{ data: profs }, { data: comps }, { data: facs }] = await Promise.all([
+    sb.from("profiles").select("*").order("created_at"),
+    sb.from("companies").select("*").order("name"),
+    sb.from("facilities").select("*").order("name"),
+  ]);
+  S.profiles = profs || []; S.companies = comps || []; S.facilities = facs || [];
+}
+function myFacilities() {
+  if (!S.profile) return [];
+  if (S.profile.role === "admin") return S.facilities;
+  return S.facilities.filter(f => S.profile.company_ids.includes(f.company_id) &&
+    (!S.profile.facility_ids?.length || S.profile.facility_ids.includes(f.id)));
+}
+
+/* ============ Boot ============ */
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { await afterLogin(session); } else { S.boot = "login"; render(); }
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") { S.boot = "login"; S.session = null; S.profile = null; render(); }
+  });
+}
+async function afterLogin(session) {
+  S.session = session;
+  const { data: prof, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+  if (error || !prof) { S.boot = "error"; S.errmsg = "Profil bulunamadı: " + (error?.message || ""); render(); return; }
+  if (!prof.active) { await sb.auth.signOut(); S.boot = "login"; S.loginErr = "Hesabınız pasif durumda."; render(); return; }
+  S.profile = prof;
+  await loadCore();
+  const fl = myFacilities();
+  S.vg.fid = fl[0]?.id || null;
+  S.kayit.fid = fl[0]?.id || null;
+  S.boot = "app"; S.page = "genel";
+  render();
+}
+
+/* ============ Render — kabuk ============ */
+function render() {
+  if (S.boot === "loading") { app.innerHTML = `<div class="center">Portal yükleniyor…</div>`; return; }
+  if (S.boot === "error") { app.innerHTML = `<div class="center">Hata: ${esc(S.errmsg||"bilinmiyor")}</div>`; return; }
+  if (S.boot === "login") { app.innerHTML = renderLogin(); attachLogin(); return; }
+
+  const isAdmin = S.profile.role === "admin";
+  const myCo = S.companies.filter(c => S.profile.company_ids.includes(c.id)).map(c=>c.name.split(" ")[0]).join(", ");
+  const TABS = [
+    ["genel","Genel Bakış"], ["veri","Veri Girişi"], ["kayit","Kayıtlar"],
+    ...(isAdmin ? [["tesis","Şirket & Tesis"],["kull","Kullanıcılar"],["log","İşlem Kaydı"]] : []),
+  ];
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><div class="mark">B</div>
+        <div><div class="brand-t">Bera Grup · Tesis Veri Portalı</div>
+        <div class="brand-s">${esc(S.profile.name || S.profile.email)} · ${isAdmin ? "Tam Yetkili" : esc(myCo)}</div></div>
+      </div>
+      <button class="btn ghost" id="btnLogout">Çıkış</button>
+    </header>
+    <nav class="tabs">${TABS.map(([id,l]) => `<button class="tab ${S.page===id?"on":""}" data-page="${id}">${l}</button>`).join("")}</nav>
+    <div id="flashSlot">${S.msg ? `<div class="flash ${S.msg.kind}">${esc(S.msg.t)}</div>` : ""}</div>
+    <main class="main" id="mainSlot"></main>
+    <footer class="foot">Ortak veri deposu · pilot sürüm v1 · son yazan kazanır (eşzamanlı düzenlemede)</footer>
+  `;
+  document.getElementById("btnLogout").onclick = async () => { await audit("ÇIKIŞ","Oturum kapatıldı"); await sb.auth.signOut(); };
+  app.querySelectorAll(".tab").forEach(b => b.onclick = () => { S.page = b.dataset.page; render(); });
+  renderPage();
+}
+
+function renderLogin() {
+  return `<div class="login-wrap">
+    <div class="login-hero"><div class="mark">B</div>
+      <div style="font-weight:700;font-size:18px">Bera Grup · Tesis Veri Portalı</div>
+      <div class="sub">Enerji &amp; tesis kayıtları — yetkili erişim</div></div>
+    <div class="card">
+      <div class="fieldrow"><label class="label">E-posta</label><input class="input" id="liEmail" placeholder="ornek@bera.com.tr"></div>
+      <div class="fieldrow"><label class="label">Şifre</label><input class="input" id="liPass" type="password"></div>
+      ${S.loginErr ? `<div class="flash err" style="margin:0 0 10px">${esc(S.loginErr)}</div>` : ""}
+      <button class="btn" id="liGo" style="width:100%;justify-content:center">Giriş yap</button>
+    </div>
+    <div class="sub" style="text-align:center">Şifre işlemleri yalnızca sistem yöneticisindedir.</div>
+  </div>`;
+}
+function attachLogin() {
+  const go = async () => {
+    const email = document.getElementById("liEmail").value.trim();
+    const pass = document.getElementById("liPass").value;
+    if (!email || !pass) return;
+    document.getElementById("liGo").disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { S.loginErr = "Giriş başarısız: " + error.message; render(); return; }
+    S.loginErr = null;
+    await afterLogin(data.session);
+    await audit("GİRİŞ", "Oturum açıldı");
+  };
+  document.getElementById("liGo").onclick = go;
+  document.getElementById("liPass").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+}
+
+/* ============ Sayfa yönlendirme ============ */
+function renderPage() {
+  const slot = document.getElementById("mainSlot");
+  if (S.page === "genel") return renderGenel(slot);
+  if (S.page === "veri") return renderVeriGiris(slot);
+  if (S.page === "kayit") return renderKayitlar(slot);
+  if (S.page === "tesis") return renderTesis(slot);
+  if (S.page === "kull") return renderKullanicilar(slot);
+  if (S.page === "log") return renderLog(slot);
+}
+
+/* ---------- Genel Bakış ---------- */
+async function renderGenel(slot) {
+  const fl = myFacilities();
+  if (!fl.length) { slot.innerHTML = `<div class="card"><h3>Henüz görüntüleyebileceğiniz tesis yok</h3><div class="sub">Yönetici size bir şirket/tesis atadığında burada listelenecek.</div></div>`; return; }
+  slot.innerHTML = `<div class="sub">Yükleniyor…</div>`;
+  const counts = {};
+  for (const f of fl) {
+    const { data } = await sb.from("records").select("donem").eq("facility_id", f.id).order("donem");
+    counts[f.id] = { n: data?.length || 0, last: data?.length ? data[data.length-1].donem : "—" };
+  }
+  const cos = S.companies.filter(c => fl.some(f => f.company_id === c.id));
+  slot.innerHTML = cos.map(c => `
+    <div class="card"><h3>${esc(c.name)}</h3>
+      <table><thead><tr><th>Tesis</th><th>Tesisat No</th><th>Kurulu Güç</th><th>Kayıt</th><th>Son Dönem</th></tr></thead>
+        <tbody>${fl.filter(f=>f.company_id===c.id).map(f => `
+          <tr><td>${esc(f.name)}<span class="mev">${esc(f.notlar||"")}</span></td>
+            <td class="mono">${esc(f.tesisat_no||"—")}</td>
+            <td class="num">${f.kurulu_guc_dc ? nf(f.kurulu_guc_dc)+" kWp" : "—"}</td>
+            <td class="num">${counts[f.id].n}</td><td class="mono">${counts[f.id].last}</td></tr>
+        `).join("")}</tbody></table>
+    </div>`).join("");
+}
+
+/* ---------- Veri Girişi ---------- */
+async function renderVeriGiris(slot) {
+  const fl = myFacilities();
+  if (!fl.length) { slot.innerHTML = `<div class="card"><h3>Tesis yok</h3></div>`; return; }
+  if (!S.vg.fid) S.vg.fid = fl[0].id;
+  const fac = fl.find(f => f.id === S.vg.fid);
+  const donem = `${S.vg.yil}.${S.vg.ay}`;
+  const { data: recs } = await sb.from("records").select("*").eq("facility_id", fac.id);
+  S.vg.recs = recs || [];
+  const exists = S.vg.recs.some(r => r.donem === donem);
+  S.vg.data = S.vg._donemKey === donem && S.vg._fidKey === fac.id ? S.vg.data : {};
+  S.vg._donemKey = donem; S.vg._fidKey = fac.id;
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="grid3">
+        <div><label class="label">Tesis</label><select class="input" id="vgFid">${fl.map(f=>`<option value="${f.id}" ${f.id===fac.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select></div>
+        <div><label class="label">Yıl</label><select class="input" id="vgYil">${["2024","2025","2026","2027"].map(y=>`<option ${y===S.vg.yil?"selected":""}>${y}</option>`).join("")}</select></div>
+        <div><label class="label">Ay</label><select class="input" id="vgAy">${Array.from({length:12},(_,i)=>String(i+1).padStart(2,"0")).map(m=>`<option ${m===S.vg.ay?"selected":""}>${m}</option>`).join("")}</select></div>
+      </div>
+      ${exists ? `<div class="warn" style="margin-top:10px">${donem} için kayıt mevcut. Yeni giriş yerine Kayıtlar sekmesinden düzeltin.</div>` : ""}
+    </div>
+    <div class="veri-grid">
+      <div>
+        <div class="card"><h3>Sayaç Endeksleri</h3><div class="sub">Çarpanlar: çekiş-veriş ×${fac.carpan_cv} · üretim ×${fac.carpan_u}</div>
+          <div class="grid2">${SAYAC_FIELDS.map(([k,l])=>`<div><label class="label">${l}</label><input class="input mono" data-f="${k}" value="${esc(S.vg.data[k]||"")}"></div>`).join("")}</div></div>
+        <div class="card"><h3>Tarife</h3><div class="sub">EPDK tarife tablosu — gerçek faturayla çapraz kontrol edilir.</div>
+          <div class="grid2">${TARIFE_FIELDS.map(([k,l,m])=>`<div><label class="label">${l}</label><input class="input mono" data-f="${k}" value="${esc(S.vg.data[k]||"")}"><span class="mev">${m}</span></div>`).join("")}</div></div>
+        <div class="card"><h3>Gerçek Faturalar</h3><div class="sub">Kesilen faturaların KDV dahil tutarları.</div>
+          <div class="grid2">${FATURA_FIELDS.map(([k,l])=>`<div><label class="label">${l}</label><input class="input mono" data-f="${k}" value="${esc(S.vg.data[k]||"")}"></div>`).join("")}</div></div>
+        <button class="btn" id="vgSave" ${exists?"disabled":""}>${exists?"Bu dönem zaten kayıtlı":"Kaydet"}</button>
+      </div>
+      <div class="sticky" id="calcSlot"></div>
+    </div>
+  `;
+  document.getElementById("vgFid").onchange = e => { S.vg.fid = e.target.value; renderVeriGiris(slot); };
+  document.getElementById("vgYil").onchange = e => { S.vg.yil = e.target.value; renderVeriGiris(slot); };
+  document.getElementById("vgAy").onchange = e => { S.vg.ay = e.target.value; renderVeriGiris(slot); };
+  slot.querySelectorAll("[data-f]").forEach(inp => {
+    inp.addEventListener("input", () => { S.vg.data[inp.dataset.f] = inp.value; updateCalcPanel(fac, donem); });
+  });
+  updateCalcPanel(fac, donem);
+  if (!exists) document.getElementById("vgSave").onclick = () => saveRecord(fac, donem);
+}
+function calcPanelHtml(c, donem) {
+  const L = (l,v,u="",warn) => `<div class="hline"><span style="color:${warn?"var(--red)":"var(--mid)"}">${l}</span><b style="color:${warn?"var(--red)":"var(--text)"}">${nf(v)}${u}</b></div>`;
+  return `<div class="card"><h3>Canlı Hesap — ${donem}</h3><div class="sub">Girdikçe güncellenir · v1 yaklaşık kontrol</div>
+    ${L("Çekiş toplam",c.cekis," kWh")}${L("Veriş toplam",c.veris," kWh")}${L("Üretim",c.uretim," kWh")}
+    ${L("Öz tüketim",c.ozTuketim," kWh")}${L("Gerçek tüketim",c.gercekTuketim," kWh")}<div style="height:8px"></div>
+    ${L("Aylık ihtiyaç fazlası",c.aylikFazla," kWh")}${L("Satılabilir fazla",c.satilabilir," kWh")}
+    ${L("Bedelsiz (YEKDEM)",c.bedelsiz," kWh",c.bedelsiz>0)}${L("Kalan satış hakkı",c.kalanHakSonra," kWh")}<div style="height:8px"></div>
+    ${L("Etkin dağıtım birimi",c.etkinDagBirim," TL/kWh")}${L("Hesaplanan tüketim faturası",c.hesapTuketim," TL")}
+    ${c.farkTuketim!==null?L("Fark (girilen−hesap)",c.farkTuketim," TL",Math.abs(c.farkTuketim)>50):""}
+    ${L("Hesaplanan satış (fazlası)",c.satisFazlaTL," TL")}${c.gross?L("Hesaplanan satış (karşılığı)",c.satisKarsTL," TL"):""}<div style="height:8px"></div>
+    ${L("Endüktif oran",c.endOran*100," %",c.endOran>0.15)}${L("Kapasitif oran",c.kapOran*100," %",c.kapOran>0.12)}
+    <div class="sub" style="margin-top:8px">${c.gross?"Gross / ikili dönem":"Mahsuplu dönem"} kuralları uygulanıyor</div></div>`;
+}
+function updateCalcPanel(fac, donem) {
+  const yil = donem.split(".")[0];
+  const prevSameYear = S.vg.recs.filter(r => r.donem.startsWith(yil+".") && r.donem < donem).sort((a,b)=>a.donem.localeCompare(b.donem));
+  const c = compute(fac, { ...S.vg.data, donem }, prevSameYear);
+  document.getElementById("calcSlot").innerHTML = calcPanelHtml(c, donem);
+}
+async function saveRecord(fac, donem) {
+  const yil = donem.split(".")[0];
+  const prevSameYear = S.vg.recs.filter(r => r.donem.startsWith(yil+".") && r.donem < donem);
+  const c = compute(fac, { ...S.vg.data, donem }, prevSameYear);
+  const payload = {
+    facility_id: fac.id, donem, data: { ...S.vg.data, donem },
+    calc_cache: { satilabilir: c.satilabilir }, entered_by: S.profile.id, history: [],
+  };
+  const { error } = await sb.from("records").insert(payload);
+  if (error) { flash("Kayıt yazılamadı: " + error.message, "err"); return; }
+  await audit("KAYIT", `${fac.name} · ${donem} dönemi veri girişi`);
+  S.vg.data = {};
+  flash(`${donem} kaydedildi — Kayıtlar sekmesinden Excel indirebilirsiniz.`);
+  renderVeriGiris(document.getElementById("mainSlot"));
+}
+
+/* ---------- Kayıtlar ---------- */
+async function renderKayitlar(slot) {
+  const fl = myFacilities();
+  if (!fl.length) { slot.innerHTML = `<div class="card"><h3>Tesis yok</h3></div>`; return; }
+  if (!S.kayit.fid) S.kayit.fid = fl[0].id;
+  const fac = fl.find(f => f.id === S.kayit.fid);
+
+  if (S.kayit.edit) return renderKayitDuzenle(slot, fac);
+  if (S.kayit.open) return renderKayitDetay(slot, fac);
+
+  slot.innerHTML = `<div class="card">
+    <div style="margin-bottom:10px"><label class="label">Tesis</label>
+      <select class="input" id="kyFid">${fl.map(f=>`<option value="${f.id}" ${f.id===fac.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select></div>
+    <div id="kyList" class="sub">Yükleniyor…</div></div>`;
+  document.getElementById("kyFid").onchange = e => { S.kayit.fid = e.target.value; renderKayitlar(slot); };
+  const { data: recs } = await sb.from("records").select("*, entered_by_profile:profiles!records_entered_by_fkey(name)").eq("facility_id", fac.id).order("donem", { ascending: false });
+  const list = (recs || []).map(r => ({ ...r, entered_by_name: r.entered_by_profile?.name || "—" }));
+  S.kayit.recs = list;
+  const body = document.getElementById("kyList");
+  if (!list.length) { body.innerHTML = `Bu tesis için henüz kayıt yok — Veri Girişi sekmesinden ilk dönemi ekleyin.`; return; }
+  body.innerHTML = `<table><thead><tr><th>Dönem</th><th>Giren</th><th>Tarih</th><th>Durum</th><th></th></tr></thead>
+    <tbody>${list.map(r => `<tr>
+      <td class="mono">${r.donem}</td><td>${esc(r.entered_by_name)}</td>
+      <td class="mono" style="font-size:12px">${trDate(r.entered_at)}</td>
+      <td>${r.history?.length ? `<span class="pill gold">${r.history.length} düzeltme</span>` : `<span class="pill teal">orijinal</span>`}</td>
+      <td style="text-align:right"><button class="btn ghost small" data-open="${r.id}">Aç</button></td>
+    </tr>`).join("")}</tbody></table>`;
+  body.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { S.kayit.open = list.find(r => r.id === b.dataset.open); renderKayitlar(slot); });
+}
+function renderKayitDetay(slot, fac) {
+  const r = S.kayit.open;
+  const yil = r.donem.split(".")[0];
+  const prevSameYear = S.kayit.recs.filter(x => x.donem.startsWith(yil+".") && x.donem < r.donem);
+  const c = compute(fac, r.data, prevSameYear);
+  const canEdit = S.profile.role === "admin" || r.entered_by === S.profile.id;
+  slot.innerHTML = `
+    <button class="btn ghost small" id="kyBack">← Listeye dön</button><div style="height:10px"></div>
+    <div class="card"><h3>${esc(fac.name)} · ${r.donem}</h3>
+      <div class="sub">Giren: ${esc(r.entered_by_name)} · ${trDate(r.entered_at)} ${r.history?.length?`· ${r.history.length} düzeltme`:""}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn small" id="kyExport">Excel indir</button>
+        ${canEdit ? `<button class="btn ghost small" id="kyEdit">Düzelt</button>` : `<span class="pill dim">Düzeltme yetkisi: yalnız giren kişi ve yönetici</span>`}
+      </div></div>
+    <div class="veri-grid">
+      <div class="card"><h3>Girilen Veriler</h3><table><tbody>
+        ${[...SAYAC_FIELDS, ...TARIFE_FIELDS.map(x=>[x[0],x[1]]), ...FATURA_FIELDS].map(([k,l]) => `<tr><td style="color:var(--mid)">${l}</td><td class="num">${esc(r.data[k]??"—")}</td></tr>`).join("")}
+      </tbody></table></div>
+      ${calcPanelHtml(c, r.donem)}
+    </div>
+    ${r.history?.length ? `<div class="card"><h3>Düzeltme Geçmişi</h3>${r.history.map(h => `
+      <div style="border-bottom:1px solid #232836;padding:8px 0">
+        <div class="sub" style="margin:0">${esc(h.byName)} · ${trDate(h.ts)} ${h.note?`· "${esc(h.note)}"`:""}</div>
+        ${Object.entries(h.changes).map(([k,v]) => `<div style="font-size:12px" class="mono">${k}: <span style="color:var(--red)">${esc(v.eski)||"∅"}</span> → <span style="color:var(--teal)">${esc(v.yeni)||"∅"}</span></div>`).join("")}
+      </div>`).join("")}</div>` : ""}
+  `;
+  document.getElementById("kyBack").onclick = () => { S.kayit.open = null; renderKayitlar(slot); };
+  document.getElementById("kyExport").onclick = async () => { exportXlsx(fac, r, c); await audit("EXCEL", `${fac.name} · ${r.donem} Excel indirildi`); };
+  if (canEdit) document.getElementById("kyEdit").onclick = () => { S.kayit.edit = r; S.kayit.editData = { ...r.data }; renderKayitlar(slot); };
+}
+function renderKayitDuzenle(slot, fac) {
+  const r = S.kayit.edit;
+  const yil = r.donem.split(".")[0];
+  const prevSameYear = S.kayit.recs.filter(x => x.donem.startsWith(yil+".") && x.donem < r.donem);
+  const calc = () => compute(fac, S.kayit.editData, prevSameYear);
+  slot.innerHTML = `
+    <div class="card"><h3>✎ Düzeltme — ${esc(fac.name)} · ${r.donem}</h3>
+      <div class="sub">Her değişiklik alan bazında geçmişe işlenir.</div>
+      <label class="label">Düzeltme notu (isteğe bağlı)</label>
+      <input class="input" id="edNote" placeholder="örn. gündüz son endeks fatura ile düzeltildi"></div>
+    <div class="veri-grid">
+      <div>
+        <div class="card"><h3>Sayaç</h3><div class="grid2">${SAYAC_FIELDS.map(([k,l])=>`<div><label class="label">${l}</label><input class="input mono" data-f="${k}" value="${esc(S.kayit.editData[k]||"")}"></div>`).join("")}</div></div>
+        <div class="card"><h3>Tarife</h3><div class="grid2">${TARIFE_FIELDS.map(([k,l])=>`<div><label class="label">${l}</label><input class="input mono" data-f="${k}" value="${esc(S.kayit.editData[k]||"")}"></div>`).join("")}</div></div>
+        <div class="card"><h3>Faturalar</h3><div class="grid2">${FATURA_FIELDS.map(([k,l])=>`<div><label class="label">${l}</label><input class="input mono" data-f="${k}" value="${esc(S.kayit.editData[k]||"")}"></div>`).join("")}</div></div>
+        <div style="display:flex;gap:8px"><button class="btn" id="edSave">Düzeltmeyi kaydet</button><button class="btn ghost" id="edCancel">Vazgeç</button></div>
+      </div>
+      <div class="sticky" id="edCalcSlot"></div>
+    </div>`;
+  slot.querySelectorAll("[data-f]").forEach(inp => inp.addEventListener("input", () => { S.kayit.editData[inp.dataset.f] = inp.value; document.getElementById("edCalcSlot").innerHTML = calcPanelHtml(calc(), r.donem); }));
+  document.getElementById("edCalcSlot").innerHTML = calcPanelHtml(calc(), r.donem);
+  document.getElementById("edCancel").onclick = () => { S.kayit.edit = null; renderKayitlar(slot); };
+  document.getElementById("edSave").onclick = async () => {
+    const note = document.getElementById("edNote").value;
+    const changes = {};
+    const allKeys = new Set([...Object.keys(r.data), ...Object.keys(S.kayit.editData)]);
+    allKeys.forEach(k => { if ((r.data[k]??"") !== (S.kayit.editData[k]??"")) changes[k] = { eski: r.data[k]??"", yeni: S.kayit.editData[k]??"" }; });
+    if (!Object.keys(changes).length) { flash("Değişiklik yok."); S.kayit.edit = null; renderKayitlar(slot); return; }
+    const c = calc();
+    const newHistory = [...(r.history||[]), { ts: now(), by: S.profile.id, byName: S.profile.name, note, changes }];
+    const { error } = await sb.from("records").update({ data: S.kayit.editData, calc_cache: { satilabilir: c.satilabilir }, history: newHistory }).eq("id", r.id);
+    if (error) { flash("Yazılamadı: " + error.message, "err"); return; }
+    await audit("DÜZELTME", `${fac.name} · ${r.donem} — ${Object.keys(changes).length} alan düzeltildi${note?" ("+note+")":""}`);
+    flash("Düzeltme kaydedildi ve geçmişe işlendi.");
+    S.kayit.edit = null; S.kayit.open = null;
+    renderKayitlar(slot);
+  };
+}
+
+/* ---------- Şirket & Tesis (admin) ---------- */
+function renderTesis(slot) {
+  if (S.tesis.form) return renderTesisForm(slot);
+  slot.innerHTML = `
+    <div class="card"><h3>Şirketler</h3>
+      <table><tbody>${S.companies.map(c => `<tr><td>${esc(c.name)}</td></tr>`).join("")}</tbody></table>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="input" id="coName" placeholder="Yeni şirket adı" style="max-width:300px">
+        <button class="btn small" id="coAdd">Ekle</button></div></div>
+    <div class="card"><h3>Tesisler</h3>
+      <table><thead><tr><th>Tesis</th><th>Şirket</th><th>Tesisat</th><th></th></tr></thead>
+        <tbody>${S.facilities.map(f => `<tr><td>${esc(f.name)}</td><td>${esc(S.companies.find(c=>c.id===f.company_id)?.name||"—")}</td>
+          <td class="mono">${esc(f.tesisat_no||"—")}</td>
+          <td style="text-align:right"><button class="btn ghost small" data-edit="${f.id}">Düzenle</button></td></tr>`).join("")}</tbody></table>
+      <div style="margin-top:10px"><button class="btn small" id="facNew">+ Yeni tesis</button></div></div>`;
+  document.getElementById("coAdd").onclick = async () => {
+    const name = document.getElementById("coName").value.trim(); if (!name) return;
+    const { error } = await sb.from("companies").insert({ name, created_by: S.profile.id });
+    if (error) { flash("Eklenemedi: " + error.message, "err"); return; }
+    await audit("ŞİRKET", `Yeni şirket: ${name}`); await loadCore(); flash("Şirket eklendi."); renderTesis(slot);
+  };
+  document.getElementById("facNew").onclick = () => { S.tesis.form = { company_id: S.companies[0]?.id, satis_hakki: {} }; renderTesis(slot); };
+  slot.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { S.tesis.form = { ...S.facilities.find(f => f.id === b.dataset.edit) }; renderTesis(slot); });
+}
+function renderTesisForm(slot) {
+  const f = S.tesis.form;
+  const sh = f.satis_hakki || {};
+  slot.innerHTML = `<div class="card"><h3>${f.id?"Tesisi düzenle":"Yeni tesis"}</h3>
+    <div class="grid3" style="margin-bottom:10px">
+      <div><label class="label">Şirket</label><select class="input" id="fCo">${S.companies.map(c=>`<option value="${c.id}" ${c.id===f.company_id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></div>
+      <div><label class="label">Tesis adı</label><input class="input" id="fName" value="${esc(f.name||"")}"></div>
+      <div><label class="label">Tesisat no</label><input class="input mono" id="fTesisat" value="${esc(f.tesisat_no||"")}"></div>
+      <div><label class="label">Devreye alış (YYYY.AA)</label><input class="input mono" id="fDevreye" value="${esc(f.devreye||"")}"></div>
+      <div><label class="label">Kurulu güç DC (kWp)</label><input class="input mono" id="fKurulu" value="${f.kurulu_guc_dc??""}"></div>
+      <div><label class="label">Sözleşme gücü (kW)</label><input class="input mono" id="fSozlesme" value="${f.sozlesme_gucu??""}"></div>
+      <div><label class="label">Tarife sınıfı</label><input class="input" id="fTarife" value="${esc(f.tarife_sinifi||"")}"></div>
+      <div><label class="label">Dağıtım şirketi</label><input class="input" id="fDagitim" value="${esc(f.dagitim||"")}"></div>
+      <div><label class="label">Tedarikçi</label><input class="input" id="fTedarik" value="${esc(f.tedarik||"")}"></div>
+      <div><label class="label">Çarpan çekiş-veriş</label><input class="input mono" id="fCV" value="${f.carpan_cv??1}"></div>
+      <div><label class="label">Çarpan üretim</label><input class="input mono" id="fCU" value="${f.carpan_u??1}"></div>
+      <div><label class="label">Panel / İnvertör</label><div style="display:flex;gap:6px">
+        <input class="input mono" id="fPanel" value="${f.panel??""}" placeholder="panel"><input class="input mono" id="fInv" value="${f.inverter??""}" placeholder="inv"></div></div>
+    </div>
+    <label class="label">Yıllık satış hakkı (kWh) — 11.08.2022/31920</label>
+    <div class="grid4" style="margin-bottom:10px">${["2024","2025","2026","2027"].map(y=>`<div><label class="label">${y}</label><input class="input mono" data-sh="${y}" value="${sh[y]??""}"></div>`).join("")}</div>
+    <label class="label">Mevzuat / notlar</label><input class="input" id="fNotlar" value="${esc(f.notlar||"")}" style="margin-bottom:12px">
+    <div style="display:flex;gap:8px"><button class="btn" id="fSave">Kaydet</button><button class="btn ghost" id="fCancel">Vazgeç</button></div></div>`;
+  document.getElementById("fCancel").onclick = () => { S.tesis.form = null; renderTesis(slot); };
+  document.getElementById("fSave").onclick = async () => {
+    const satis_hakki = {}; slot.querySelectorAll("[data-sh]").forEach(i => { if (i.value) satis_hakki[i.dataset.sh] = pf(i.value); });
+    const payload = {
+      company_id: document.getElementById("fCo").value, name: document.getElementById("fName").value.trim(),
+      tesisat_no: document.getElementById("fTesisat").value, devreye: document.getElementById("fDevreye").value,
+      kurulu_guc_dc: pf(document.getElementById("fKurulu").value), sozlesme_gucu: pf(document.getElementById("fSozlesme").value),
+      tarife_sinifi: document.getElementById("fTarife").value, dagitim: document.getElementById("fDagitim").value,
+      tedarik: document.getElementById("fTedarik").value, carpan_cv: pf(document.getElementById("fCV").value)||1,
+      carpan_u: pf(document.getElementById("fCU").value)||1, panel: pf(document.getElementById("fPanel").value),
+      inverter: pf(document.getElementById("fInv").value), satis_hakki, notlar: document.getElementById("fNotlar").value,
+    };
+    if (!payload.name) { flash("Tesis adı gerekli.", "err"); return; }
+    let error;
+    if (f.id) ({ error } = await sb.from("facilities").update(payload).eq("id", f.id));
+    else ({ error } = await sb.from("facilities").insert({ ...payload, created_by: S.profile.id }));
+    if (error) { flash("Kaydedilemedi: " + error.message, "err"); return; }
+    await audit("TESİS", `${f.id?"Düzenlendi":"Yeni tesis"}: ${payload.name}`);
+    await loadCore(); S.tesis.form = null; flash("Tesis kaydedildi."); renderTesis(slot);
+  };
+}
+
+/* ---------- Kullanıcılar (admin) ---------- */
+function renderKullanicilar(slot) {
+  if (S.kull.form) return renderKullaniciForm(slot);
+  slot.innerHTML = `<div class="card"><h3>Kullanıcılar</h3>
+    <div class="sub">Yeni kullanıcı ve şifre işlemleri Supabase panelinden (Authentication → Users) yapılır. Burada rol ve erişim yetkisini düzenlersiniz.</div>
+    <table><thead><tr><th>Ad</th><th>E-posta</th><th>Rol</th><th>Şirketler</th><th>Durum</th><th></th></tr></thead>
+      <tbody>${S.profiles.map(u => `<tr><td>${esc(u.name)}</td><td class="mono" style="font-size:12px">${esc(u.email)}</td>
+        <td>${u.role==="admin"?`<span class="pill gold">Tam yetkili</span>`:`<span class="pill dim">Şirket kullanıcısı</span>`}</td>
+        <td style="font-size:12px">${u.role==="admin"?"tümü":u.company_ids.map(id=>S.companies.find(c=>c.id===id)?.name.split(" ")[0]||id).join(", ")||"—"}
+          ${u.facility_ids?.length?`<span class="mev">tesis kısıtı: ${u.facility_ids.length}</span>`:""}</td>
+        <td>${u.active?`<span class="pill teal">aktif</span>`:`<span class="pill red">pasif</span>`}</td>
+        <td style="text-align:right"><button class="btn ghost small" data-edit="${u.id}">Düzenle</button></td></tr>`).join("")}</tbody></table></div>`;
+  slot.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { S.kull.form = { ...S.profiles.find(u => u.id === b.dataset.edit) }; renderKullanicilar(slot); });
+}
+function renderKullaniciForm(slot) {
+  const u = S.kull.form;
+  const isSelf = u.id === S.profile.id;
+  const facOf = S.facilities.filter(f => (u.company_ids||[]).includes(f.company_id));
+  slot.innerHTML = `<div class="card"><h3>Kullanıcıyı düzenle</h3>
+    <div class="grid2" style="margin-bottom:10px">
+      <div><label class="label">Ad Soyad / Görev</label><input class="input" id="uName" value="${esc(u.name||"")}"></div>
+      <div><label class="label">E-posta</label><input class="input mono" value="${esc(u.email||"")}" disabled></div>
+      <div><label class="label">Rol</label><select class="input" id="uRole" ${isSelf?"disabled":""}>
+        <option value="user" ${u.role==="user"?"selected":""}>Şirket kullanıcısı</option>
+        <option value="admin" ${u.role==="admin"?"selected":""}>Tam yetkili</option></select></div>
+    </div>
+    <div id="uCoWrap" style="${u.role==='admin'?'display:none':''}">
+      <label class="label">Erişebileceği şirketler</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="uCoChips">
+        ${S.companies.map(c => `<button class="chip ${(u.company_ids||[]).includes(c.id)?"on":""}" data-co="${c.id}">${esc(c.name.split(" ")[0])}</button>`).join("")}</div>
+      <label class="label">Tesis kısıtı (boş = şirketin tüm tesisleri)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="uFacChips">
+        ${facOf.length ? facOf.map(f => `<button class="chip ${(u.facility_ids||[]).includes(f.id)?"on":""}" data-fac="${f.id}">${esc(f.name)}</button>`).join("") : `<span class="sub">Önce şirket seçin</span>`}</div>
+    </div>
+    ${(!isSelf) ? `<div style="margin-bottom:10px"><button class="chip ${u.active?"":"on"}" id="uActive">${u.active?"Pasifleştir":"Aktifleştir"}</button></div>` : ""}
+    <div style="display:flex;gap:8px"><button class="btn" id="uSave">Kaydet</button><button class="btn ghost" id="uCancel">Vazgeç</button></div></div>`;
+  let companyIds = new Set(u.company_ids || []);
+  let facilityIds = new Set(u.facility_ids || []);
+  let active = u.active;
+  document.getElementById("uRole").onchange = e => { document.getElementById("uCoWrap").style.display = e.target.value === "admin" ? "none" : ""; };
+  const refreshFacChips = () => {
+    const facOfNow = S.facilities.filter(f => companyIds.has(f.company_id));
+    document.getElementById("uFacChips").innerHTML = facOfNow.length ? facOfNow.map(f => `<button class="chip ${facilityIds.has(f.id)?"on":""}" data-fac="${f.id}">${esc(f.name)}</button>`).join("") : `<span class="sub">Önce şirket seçin</span>`;
+    document.querySelectorAll("[data-fac]").forEach(b => b.onclick = () => { facilityIds.has(b.dataset.fac) ? facilityIds.delete(b.dataset.fac) : facilityIds.add(b.dataset.fac); b.classList.toggle("on"); });
+  };
+  document.querySelectorAll("[data-co]").forEach(b => b.onclick = () => { companyIds.has(b.dataset.co) ? companyIds.delete(b.dataset.co) : companyIds.add(b.dataset.co); b.classList.toggle("on"); refreshFacChips(); });
+  document.querySelectorAll("[data-fac]").forEach(b => b.onclick = () => { facilityIds.has(b.dataset.fac) ? facilityIds.delete(b.dataset.fac) : facilityIds.add(b.dataset.fac); b.classList.toggle("on"); });
+  if (!isSelf) document.getElementById("uActive").onclick = (e) => { active = !active; e.target.classList.toggle("on"); e.target.textContent = active ? "Pasifleştir" : "Aktifleştir"; };
+  document.getElementById("uCancel").onclick = () => { S.kull.form = null; renderKullanicilar(slot); };
+  document.getElementById("uSave").onclick = async () => {
+    const payload = {
+      name: document.getElementById("uName").value.trim(),
+      role: document.getElementById("uRole").value,
+      company_ids: Array.from(companyIds), facility_ids: Array.from(facilityIds), active,
+    };
+    const { error } = await sb.from("profiles").update(payload).eq("id", u.id);
+    if (error) { flash("Kaydedilemedi: " + error.message, "err"); return; }
+    await audit("KULLANICI", `Düzenlendi: ${u.email}`);
+    await loadCore(); S.kull.form = null; flash("Kullanıcı kaydedildi."); renderKullanicilar(slot);
+  };
+}
+
+/* ---------- İşlem Kaydı (admin) ---------- */
+async function renderLog(slot) {
+  slot.innerHTML = `<div class="card"><h3>İşlem Kaydı</h3><div class="sub">Son 400 işlem — kim, ne zaman, ne yaptı</div><div id="logBody">Yükleniyor…</div></div>`;
+  const { data } = await sb.from("audit_log").select("*").order("ts", { ascending: false }).limit(400);
+  document.getElementById("logBody").innerHTML = `<table><thead><tr><th>Zaman</th><th>Kullanıcı</th><th>İşlem</th><th>Detay</th></tr></thead>
+    <tbody>${(data||[]).map(e => `<tr><td class="mono" style="font-size:12px">${trDate(e.ts)}</td><td>${esc(e.uname)}</td>
+      <td><span class="pill gold">${esc(e.action)}</span></td><td style="font-size:12.5px;color:var(--mid)">${esc(e.detail)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+boot();
+</script>
+</body>
+</html>
