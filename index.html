@@ -294,7 +294,10 @@ function render() {
         <div><div class="brand-t">Bera Grup · Tesis Veri Portalı</div>
         <div class="brand-s">${esc(S.profile.name || S.profile.email)} · ${isAdmin ? "Tam Yetkili" : esc(myCo)}</div></div>
       </div>
-      <button class="btn ghost" id="btnLogout">Çıkış</button>
+      <div style="display:flex;gap:8px">
+        ${isAdmin ? `<button class="btn ghost" id="btnPass">Şifremi Değiştir</button>` : ""}
+        <button class="btn ghost" id="btnLogout">Çıkış</button>
+      </div>
     </header>
     <nav class="tabs">${TABS.map(([id,l]) => `<button class="tab ${S.page===id?"on":""}" data-page="${id}">${l}</button>`).join("")}</nav>
     <div id="flashSlot">${S.msg ? `<div class="flash ${S.msg.kind}">${esc(S.msg.t)}</div>` : ""}</div>
@@ -302,8 +305,35 @@ function render() {
     <footer class="foot">Ortak veri deposu · pilot sürüm v1 · son yazan kazanır (eşzamanlı düzenlemede)</footer>
   `;
   document.getElementById("btnLogout").onclick = async () => { await audit("ÇIKIŞ","Oturum kapatıldı"); await sb.auth.signOut(); };
+  if (isAdmin) document.getElementById("btnPass").onclick = openPassModal;
   app.querySelectorAll(".tab").forEach(b => b.onclick = () => { S.page = b.dataset.page; render(); });
   renderPage();
+}
+
+function openPassModal() {
+  const wrap = document.createElement("div");
+  wrap.style = "position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50";
+  wrap.innerHTML = `<div class="card" style="max-width:340px;width:90%">
+    <h3>Şifremi Değiştir</h3>
+    <div class="sub">${esc(S.profile.email)}</div>
+    <div class="fieldrow"><label class="label">Yeni şifre</label><input class="input" id="pmPass" type="password"></div>
+    <div class="fieldrow"><label class="label">Yeni şifre (tekrar)</label><input class="input" id="pmPass2" type="password"></div>
+    <div id="pmErr"></div>
+    <div style="display:flex;gap:8px"><button class="btn" id="pmGo">Kaydet</button><button class="btn ghost" id="pmCancel">Vazgeç</button></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById("pmCancel").onclick = () => wrap.remove();
+  document.getElementById("pmGo").onclick = async () => {
+    const p1 = document.getElementById("pmPass").value, p2 = document.getElementById("pmPass2").value;
+    const err = document.getElementById("pmErr");
+    if (p1.length < 6) { err.innerHTML = `<div class="flash err">Şifre en az 6 karakter olmalı.</div>`; return; }
+    if (p1 !== p2) { err.innerHTML = `<div class="flash err">Şifreler eşleşmiyor.</div>`; return; }
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if (error) { err.innerHTML = `<div class="flash err">${esc(error.message)}</div>`; return; }
+    await audit("ŞİFRE", "Kendi şifresini değiştirdi");
+    wrap.remove();
+    flash("Şifreniz güncellendi.");
+  };
 }
 
 function renderLogin() {
