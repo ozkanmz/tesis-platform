@@ -227,11 +227,39 @@ function myFacilities() {
 
 /* ============ Boot ============ */
 async function boot() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) { await afterLogin(session); } else { S.boot = "login"; render(); }
+  let recoveryHandled = false;
   sb.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") { recoveryHandled = true; S.recoverySession = session; S.boot = "recovery"; render(); return; }
     if (event === "SIGNED_OUT") { S.boot = "login"; S.session = null; S.profile = null; render(); }
   });
+  await new Promise(r => setTimeout(r, 250)); // recovery olayının yakalanması için kısa bekleme
+  if (recoveryHandled) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { await afterLogin(session); } else { S.boot = "login"; render(); }
+}
+function renderRecovery() {
+  return `<div class="login-wrap">
+    <div class="login-hero"><div class="mark">B</div>
+      <div style="font-weight:700;font-size:18px">Yeni Şifre Belirle</div>
+      <div class="sub">${esc(S.recoverySession?.user?.email || "")}</div></div>
+    <div class="card">
+      <div class="fieldrow"><label class="label">Yeni şifre</label><input class="input" id="rcPass" type="password"></div>
+      <div class="fieldrow"><label class="label">Yeni şifre (tekrar)</label><input class="input" id="rcPass2" type="password"></div>
+      ${S.recoverErr ? `<div class="flash err" style="margin:0 0 10px">${esc(S.recoverErr)}</div>` : ""}
+      <button class="btn" id="rcGo" style="width:100%;justify-content:center">Şifreyi kaydet ve giriş yap</button>
+    </div>
+  </div>`;
+}
+function attachRecovery() {
+  document.getElementById("rcGo").onclick = async () => {
+    const p1 = document.getElementById("rcPass").value, p2 = document.getElementById("rcPass2").value;
+    if (p1.length < 6) { S.recoverErr = "Şifre en az 6 karakter olmalı."; render(); return; }
+    if (p1 !== p2) { S.recoverErr = "Şifreler eşleşmiyor."; render(); return; }
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if (error) { S.recoverErr = "Kaydedilemedi: " + error.message; render(); return; }
+    S.recoverErr = null;
+    await afterLogin(S.recoverySession);
+  };
 }
 async function afterLogin(session) {
   S.session = session;
@@ -252,6 +280,7 @@ function render() {
   if (S.boot === "loading") { app.innerHTML = `<div class="center">Portal yükleniyor…</div>`; return; }
   if (S.boot === "error") { app.innerHTML = `<div class="center">Hata: ${esc(S.errmsg||"bilinmiyor")}</div>`; return; }
   if (S.boot === "login") { app.innerHTML = renderLogin(); attachLogin(); return; }
+  if (S.boot === "recovery") { app.innerHTML = renderRecovery(); attachRecovery(); return; }
 
   const isAdmin = S.profile.role === "admin";
   const myCo = S.companies.filter(c => S.profile.company_ids.includes(c.id)).map(c=>c.name.split(" ")[0]).join(", ");
